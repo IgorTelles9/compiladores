@@ -1,27 +1,26 @@
-# Use Ubuntu as base image
+# Use an official Ubuntu as a parent image
 FROM ubuntu:latest
 
-# Update package lists and install necessary tools
-RUN apt-get update && \
-    apt-get install -y \
-    build-essential \
-    gcc-10 \
-    g++-10 \
-    cmake \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set environment variables to use GCC 10
-ENV CC=/usr/bin/gcc-10
-ENV CXX=/usr/bin/g++-10
-
-# Set working directory inside the container
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy your C++ source code files into the container
-COPY . .
+# Update and install necessary packages
+RUN apt-get update && \
+    apt-get install -y flex g++ make && \
+    rm -rf /var/lib/apt/lists/*
 
-# Compile your C++ program
-RUN g++-10 -o myprogram identificador.cpp
+# Copy the Makefile and lex file into the container
+COPY Makefile .
+COPY analisadorLexico.l .
 
-# Set the command to run when the container starts
-CMD ["./myprogram"]
+# Build the lex file to C
+RUN lex analisadorLexico.l
+
+# Compile the program using the Makefile
+RUN make all
+
+# Run the compiled program
+CMD ["./saida", "<", "entrada.txt"]
+
+# Clean up unnecessary files after running the program
+RUN make clean
