@@ -24,8 +24,8 @@ DIGITO      [0-9]
 LETRA       [a-zA-Z_]
 INTEIRO     {DIGITO}+
 FLUTUANTE   {DIGITO}+((\.{DIGITO}+)?([Ee][+\-]?{DIGITO}+)?)+
-STRING_11   (\"(.*?)(\")?("")?\")
-STRING_12   (\'(.*?)(\')?("")?\')
+STRING_11   \"([^"]|\.)*\"
+STRING_12   \'([^"]|\.)*\'
 ID          ($|{LETRA})({LETRA}|{DIGITO})*
 ERRO_ID     {ID}($)+
 WS          [ \n\r\t]+
