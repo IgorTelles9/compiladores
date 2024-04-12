@@ -22,6 +22,14 @@ WS          [ \n\r\t]+
 
 {WS}    { }
 
+">="    { lexema = yytext; return _MAIG; }
+
+"<="    { lexema = yytext; return _MEIG; }
+
+"=="    { lexema = yytext; return _IG; }
+
+"!="    { lexema = yytext; return _DIF; }
+
 "if"    { lexema = yytext; return _IF; }
 
 "for"   { lexema = yytext; return _FOR; }
