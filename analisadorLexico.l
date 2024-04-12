@@ -8,12 +8,24 @@ void identifierError(string s){
     cout << "Erro: Identificador invalido: " << s << endl; 
 }
 
+string quotesRemover(string s){
+    string r = "";
+    for (int i = 0; i < s.length(); i++){
+        if(i!=0 && i!=(s.length()-1)){
+            r = r + s[i];
+        } 
+    }
+    return r;
+}
+
 %}
 
 DIGITO      [0-9]
 LETRA       [a-zA-Z_]
 INTEIRO     {DIGITO}+
 FLUTUANTE   {DIGITO}+((\.{DIGITO}+)?([Ee][+\-]?{DIGITO}+)?)+
+STRING_11   (\"(.*?)(\")?("")?\")
+STRING_12   (\'(.*?)(\')?("")?\')
 ID          ($|{LETRA})({LETRA}|{DIGITO})*
 ERRO_ID     {ID}($)+
 WS          [ \n\r\t]+
@@ -33,6 +45,10 @@ WS          [ \n\r\t]+
 "if"    { lexema = yytext; return _IF; }
 
 "for"   { lexema = yytext; return _FOR; }
+
+{STRING_11} { lexema = quotesRemover(yytext); return _STRING; }
+
+{STRING_12} { lexema = quotesRemover(yytext); return _STRING; }
 
 {INTEIRO}   { lexema = yytext; return _INT; }
 
