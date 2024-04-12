@@ -8,7 +8,7 @@ string lexema;
 DIGITO      [0-9]
 LETRA       [a-zA-Z_]
 INTEIRO     {DIGITO}+
-FLUTUANTE   {DIGITO}+((\.{D}+)?([Ee][+\-]?{D}+)?)+
+FLUTUANTE   {DIGITO}+((\.{DIGITO}+)?([Ee][+\-]?{DIGITO}+)?)+
 ID          ($|{LETRA})({LETRA}|{DIGITO})*
 WS          [ \n\r\t]+
 
@@ -21,6 +21,10 @@ WS          [ \n\r\t]+
 "for"   { lexema = yytext; return _FOR; }
 
 {ID}    { lexema = yytext; return _ID; }
+
+{INTEIRO}   { lexema = yytext; return _INT; }
+
+{FLUTUANTE} { lexema = yytext; return _FLOAT; }
 
 .       { lexema = yytext; return yytext[0]; }
 
