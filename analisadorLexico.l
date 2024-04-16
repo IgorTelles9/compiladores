@@ -8,12 +8,12 @@ void identifierError(string s){
     cout << "Erro: Identificador invalido: " << s << endl; 
 }
 
-string splitString(string s){
-    return s.substr(1,s.length()-2);
+string splitString(string s, int size){
+    return s.substr(1,s.length()-size);
 }
 
 string stringFormatter(string t, bool singleQuotes){
-    string s = splitString(t);
+    string s = splitString(t,2);
     string r = "";
     for (int i = 0; i < s.length(); i++){
         // identify escaped quotes
@@ -28,22 +28,18 @@ string stringFormatter(string t, bool singleQuotes){
     }
     return r;
 }
-
-string formatExpr(string s){
-    return s.substr(1,s.length()-1); /* */
-}
 %}
 
 DIGITO      [0-9]
 LETRA       [a-zA-Z_]
 INTEIRO     {DIGITO}+
 FLUTUANTE   {DIGITO}+((\.{DIGITO}+)?([Ee][+\-]?{DIGITO}+)?)+
-STRING_11   \"([^"\\]|\"\"|\\.)*\"
-STRING_12   \'([^'\\]|\'\'|\\.)*\'
+STRING_11   \"([^"]|\"\"|\\.)*\"
+STRING_12   \'([^']|\'\'|\\.)*\'
 STRING_2_FULL    \`([^`{}])*\`
-STRING_2_BEGIN  \`[^`]*\$
-STRING_2_EXPR   (\{).*
-STRING_2_END    \}[^`]*[`]
+STRING_2_BEGIN  \`(.*)\$
+STRING_2_EXPR   \{(.*)
+STRING_2_END    \}([^}]*?)`
 COMENTARIO_1   \/\*\s*([^*]*\*[^\/]*)\\*\/ 
 COMENTARIO_2   [/][/].*
 ID          ($|{LETRA})({LETRA}|{DIGITO})*
@@ -72,9 +68,9 @@ WS          [ \n\r\t]+
 
 {STRING_2_FULL}  { lexema = stringFormatter(yytext, false); return _STRING2; }
 
-{STRING_2_BEGIN} { lexema = splitString(yytext); return _STRING2; }
-{STRING_2_EXPR}/"}"    { lexema = formatExpr(yytext); return _EXPR; }
-{STRING_2_END}    { lexema = splitString(yytext); return _STRING2; }
+{STRING_2_BEGIN} { lexema = splitString(yytext,2); return _STRING2; }
+{STRING_2_EXPR}/"}"    { lexema = splitString(yytext,1); return _EXPR; }
+{STRING_2_END}    { lexema = splitString(yytext,2); return _STRING2; }
 
 {COMENTARIO_1}  { lexema = yytext; return _COMENTARIO; }
 {COMENTARIO_2}  { lexema = yytext; return _COMENTARIO; }
