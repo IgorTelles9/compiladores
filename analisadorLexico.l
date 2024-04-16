@@ -68,7 +68,7 @@ WS          [ \n\r\t]+
 
 {STRING_2_FULL}  { lexema = stringFormatter(yytext, false); return _STRING2; }
 
-{STRING_2_BEGIN} { lexema = splitString(yytext,2); return _STRING2; }
+{STRING_2_BEGIN}/"{" { lexema = splitString(yytext,2); return _STRING2; }
 {STRING_2_EXPR}/"}"    { lexema = splitString(yytext,1); return _EXPR; }
 {STRING_2_END}    { lexema = splitString(yytext,2); return _STRING2; }
 
