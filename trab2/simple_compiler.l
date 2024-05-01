@@ -10,7 +10,9 @@ using namespace std;
 string lexema;
 int token;
 
-void casa( int );
+int nextToken();
+void match(int);
+string getTokenName(int);
 
 void START();
 void A();
@@ -59,7 +61,7 @@ WS          [ \n\r\t]+
 
 // ====== Grammar Rules functions ========
 
-int next_token() {
+int nextToken() {
     return yylex();
 }
 
@@ -75,7 +77,7 @@ string getTokenName(int token) {
 
 void match(int expected) {
     if(token == expected)
-        token = next_token();
+        token = nextToken();
     else {
         cout << "Erro: era esperado " << getTokenName(expected) << " mas foi encontrado " << getTokenName(token) << endl;
         exit(1);
@@ -251,7 +253,7 @@ int main() {
   tokenNames[PRINT] = "print";
   tokenNames[FUNCTION] = "function";
 
-  token = next_token();
+  token = nextToken();
   START();
   
 //   if( token == 0 )
