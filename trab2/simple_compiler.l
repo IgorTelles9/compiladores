@@ -10,9 +10,6 @@ using namespace std;
 string lexema;
 int token;
 
-string splitString(string s, int size);
-string stringFormatter(string t, bool singleQuotes);
-
 void casa( int );
 
 void START();
@@ -41,8 +38,8 @@ DIGITO      [0-9]
 LETRA       [a-zA-Z_]
 INTEIRO     {DIGITO}+
 FLUTUANTE   {DIGITO}+((\.{DIGITO}+)?([Ee][+\-]?{DIGITO}+)?)+
-STRING      (\"([^\"\n]*)\")|{ESCAPING}  
-ESCAPING    ["][^"]*([\\]|["])["][^"]*["]|['][^']*([\\]|['])['][^']*[']
+STRING      (\"([^\"\n]*)\")|{STRING_ESC}  
+STRING_ESC  [\"][^\"]*([\\]|[\"])[\"][^\"]*[\"]
 ID          ($|{LETRA})({LETRA}|{DIGITO})*
 ERRO_ID     {ID}($)+
 WS          [ \n\r\t]+
@@ -59,28 +56,6 @@ WS          [ \n\r\t]+
 .           { lexema = yytext; return yytext[0];}
 
 %%
-
-// ====== String formatter functions ========
-string splitString(string s, int size){
-    return s.substr(1,s.length()-size);
-}
-
-string stringFormatter(string t, bool singleQuotes){
-    string s = splitString(t,2);
-    string r = "";
-    for (int i = 0; i < s.length(); i++){
-        // identify escaped quotes
-        if (
-            (s[i] == '\\' && (s[i+1] == '\"' || s[i+1] == '\''))    // escaped using backslash
-            || ( singleQuotes && s[i] == '\'' && s[i+1] == '\'')    // escaped using double single quotes
-            || ( !singleQuotes && s[i] == '\"' && s[i+1] == '\"')    // escaped using double double quotes
-        ){
-            i++;
-        }            
-        r = r + s[i]; 
-    }
-    return r;
-}
 
 // ====== Grammar Rules functions ========
 
