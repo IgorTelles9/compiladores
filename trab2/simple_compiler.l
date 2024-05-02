@@ -163,8 +163,12 @@ void U(){
             break;
         case '+':
             match('+');
-            U();
-            cout << "+ ";
+            if (token == '-') {
+                U();
+            } else {
+                U();
+                cout << "+ ";
+            }
             break;
         default: W();
     }
@@ -263,3 +267,4 @@ int main() {
   
   return 0;
 }
+
