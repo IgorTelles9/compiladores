@@ -82,22 +82,24 @@ LET_ID : ID { declareVariable(DeclLet, $1); $$.code = $1.code + "&"; }
        | ID '=' E { declareVariable(DeclLet, $1); $$.code = $1.code + "&" + $1.code + $3.code + "=" + "^"; }
        ;
 
-E : LVALUE '=' E { cout << "here\n"; verifyAttrib($1.code[0]); $$.code = $1.code + $3.code + "="; }
+E : LVALUE '=' E { verifyAttrib($1.code[0]); $$.code = $1.code + $3.code + "="; }
+    | LVALUEPROP '=' E 	{ $$.code = $1.code + $3.code + "[=]"; }
+    | E '+' E { $$.code = $1.code + $3.code + "+"; }
     | ARRAY { $$.code = vec("[]"); } 
     | OBJ   { $$.code = vec("{}"); } 
     | FLOAT
     | INT
     | STRING
+    | LVALUE 	{ $$.code = $1.code + "@"; }
     | LVALUEPROP { $$.code = $1.code + "[@]"; }
 
 LVALUE  :   ID 
         ; 
 
-LVALUEPROP  :   LVALUE '.' ID { $$.code = $1.code + "." + $3.code; }
-            |   LVALUE '[' E ']' { $$.code = $1.code + "[" + $3.code + "]"; }
+LVALUEPROP  :   E '.' ID { $$.code = $1.code + $3.code; }
+            |   E '[' E ']' { $$.code = $1.code + $3.code; }
             ;
 %%
-
 #include "lex.yy.c"
 
 vector<string> concat(vector<string> a, vector<string> b) {

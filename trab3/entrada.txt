@@ -1,2 +1,7 @@
 let a = {};
-a.campo = 1 + 1;
+let b = [];
+let c, d;
+c = 1;
+d = 'Hello';
+a.campo = c + 1;
+b[9] = a.campo;
