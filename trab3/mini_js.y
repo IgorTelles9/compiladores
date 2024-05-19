@@ -71,8 +71,37 @@ CMDs : CMDs CMD { $$.code = $1.code + $2.code; }
 CMD : DECL_LET
     | DECL_CONST
     | DECL_VAR
+    | CMD_IF
     | E ';' { $$.code = $1.code + "^";}
     ;
+
+CMD_IF : IF '(' E ')' CMD 
+    {
+        string lbl_true = getLabel( "lbl_true" );
+        string lbl_end_if = getLabel( "lbl_end_if" );
+        string def_lbl_true = ":" + lbl_true;
+        string def_lbl_end_if = ":" + lbl_end_if;
+        $$.code = $3.code + 
+                lbl_true + "?" + 
+                lbl_end_if + "#" + 
+                def_lbl_true + $5.code 
+                + def_lbl_end_if; 
+
+    }
+    
+    | IF '(' E ')' CMD ELSE CMD
+    { 
+        string lbl_true = getLabel( "lbl_true" );
+        string lbl_end_if = getLabel( "lbl_end_if" );
+        string def_lbl_true = ":" + lbl_true;
+        string def_lbl_end_if = ":" + lbl_end_if;
+        $$.code = $3.code +                     // Codigo da expressão
+                lbl_true + "?" +                // Código do IF
+                $7.code + lbl_end_if + "#" +    // Código do False
+                def_lbl_true + $5.code +        // Código do True
+                def_lbl_end_if                  // Fim do IF
+                ;
+    }
     
 DECL_LET : LET LET_IDs ';' { $$ = $2; }
          ;
@@ -110,6 +139,7 @@ VAR_ID : ID { declareVariable(DeclVar, $1); $$.code = $1.code + "&"; }
 E : LVALUE '=' E { verifyAttrib($1.code[0]); $$.code = $1.code + $3.code + "="; }
     | LVALUE PLUS_EQ E { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "@" + $3.code + "+" + "="; }
     | LVALUEPROP '=' E 	{ $$.code = $1.code + $3.code + "[=]"; }
+    | LVALUE PLUS_PLUS { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "@" + "1" + "+" + "="; }
     | E '<' E { $$.code = $1.code + $3.code + "<"; }
     | E '>' E { $$.code = $1.code + $3.code + ">"; }
     | E '+' E { $$.code = $1.code + $3.code + "+"; }
