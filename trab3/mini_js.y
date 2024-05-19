@@ -53,9 +53,10 @@ vector<string> vec(string s);
 %token PRINT STRING INT FLOAT ID
 
 %right '='
-%left AND OR
-%left '+' '-' 
-%left '*' '/' 
+%nonassoc '<' '>'
+%left '+' '-'
+%left '*' '/' '%'
+
 %left '['
 %left '.'
 
@@ -68,6 +69,8 @@ CMDs : CMDs CMD { $$.code = $1.code + $2.code; }
      ;
 
 CMD : DECL_LET
+    | DECL_CONST
+    | DECL_VAR
     | E ';' { $$.code = $1.code + "^";}
     ;
     
@@ -82,16 +85,47 @@ LET_ID : ID { declareVariable(DeclLet, $1); $$.code = $1.code + "&"; }
        | ID '=' E { declareVariable(DeclLet, $1); $$.code = $1.code + "&" + $1.code + $3.code + "=" + "^"; }
        ;
 
+DECL_CONST : CONST CONST_IDs ';' { $$ = $2; }
+         ;
+
+CONST_IDs : CONST_ID ',' CONST_IDs { $$.code = $1.code + $3.code; }
+        | CONST_ID
+        ;
+
+CONST_ID : ID { declareVariable(DeclConst, $1); $$.code = $1.code + "&"; }
+       | ID '=' E { declareVariable(DeclConst, $1); $$.code = $1.code + "&" + $1.code + $3.code + "=" + "^"; }
+       ;
+
+DECL_VAR : VAR VAR_IDs ';' { $$ = $2; }
+         ;
+
+VAR_IDs : VAR_ID ',' VAR_IDs { $$.code = $1.code + $3.code; }
+        | VAR_ID
+        ;
+
+VAR_ID : ID { declareVariable(DeclVar, $1); $$.code = $1.code + "&"; }
+       | ID '=' E { declareVariable(DeclVar, $1); $$.code = $1.code + "&" + $1.code + $3.code + "=" + "^"; }
+       ;
+
 E : LVALUE '=' E { verifyAttrib($1.code[0]); $$.code = $1.code + $3.code + "="; }
+    | LVALUE PLUS_EQ E { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "@" + $3.code + "+" + "="; }
     | LVALUEPROP '=' E 	{ $$.code = $1.code + $3.code + "[=]"; }
+    | E '<' E { $$.code = $1.code + $3.code + "<"; }
+    | E '>' E { $$.code = $1.code + $3.code + ">"; }
     | E '+' E { $$.code = $1.code + $3.code + "+"; }
-    | ARRAY { $$.code = vec("[]"); } 
-    | OBJ   { $$.code = vec("{}"); } 
+    | E '*' E { $$.code = $1.code + $3.code + "*"; }
+    | E '/' E { $$.code = $1.code + $3.code + "/"; }
+    | E '-' E { $$.code = $1.code + $3.code + "-"; }
+    | E '%' E { $$.code = $1.code + $3.code + "%"; }
+    | '-' E   {$$.code = "0" + $2.code + $1.code; }
+    | ARRAY   { $$.code = vec("[]"); } 
+    | OBJ     { $$.code = vec("{}"); } 
     | FLOAT
     | INT
     | STRING
-    | LVALUE 	{ $$.code = $1.code + "@"; }
-    | LVALUEPROP { $$.code = $1.code + "[@]"; }
+    | LVALUE 	    { $$.code = $1.code + "@"; }
+    | LVALUEPROP    { $$.code = $1.code + "[@]"; }
+    | '(' E ')'     { $$.code = $2.code; }
 
 LVALUE  :   ID 
         ; 

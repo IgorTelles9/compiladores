@@ -1,7 +1,4 @@
-let a = {};
-let b = [];
-let c, d;
-c = 1;
-d = 'Hello';
-a.campo = c + 1;
-b[9] = a.campo;
+let a = 1, b, x;
+x = b = a * (8 + 1.1);
+let c = "hello ";
+c += ", " + 'world' + '!';
