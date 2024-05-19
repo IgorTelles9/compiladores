@@ -138,9 +138,10 @@ VAR_ID : ID { declareVariable(DeclVar, $1); $$.code = $1.code + "&"; }
        ;
 
 E : LVALUE '=' E { verifyAttrib($1.code[0]); $$.code = $1.code + $3.code + "="; }
+    | LVALUE PLUS_PLUS { verifyAttrib($1.code[0]); $$.code = $1.code + "@" + $1.code + $1.code + "@" + "1" + "+" + "=" + "^"; }
     | LVALUE PLUS_EQ E { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "@" + $3.code + "+" + "="; }
     | LVALUEPROP '=' E 	{ $$.code = $1.code + $3.code + "[=]"; }
-    | LVALUE PLUS_PLUS { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "@" + "1" + "+" + "="; }
+    | LVALUEPROP PLUS_EQ E { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "[@]" + $3.code + "+" + "[=]"; }
     | E '<' E { $$.code = $1.code + $3.code + "<"; }
     | E '>' E { $$.code = $1.code + $3.code + ">"; }
     | E EQUAL E { $$.code = $1.code + $3.code + "=="; }
