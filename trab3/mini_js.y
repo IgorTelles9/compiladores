@@ -72,6 +72,7 @@ CMD : DECL_LET
     | DECL_CONST
     | DECL_VAR
     | CMD_IF
+    | '{' CMDs '}' { $$.code = $2.code; }
     | E ';' { $$.code = $1.code + "^";}
     ;
 
@@ -142,6 +143,10 @@ E : LVALUE '=' E { verifyAttrib($1.code[0]); $$.code = $1.code + $3.code + "="; 
     | LVALUE PLUS_PLUS { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "@" + "1" + "+" + "="; }
     | E '<' E { $$.code = $1.code + $3.code + "<"; }
     | E '>' E { $$.code = $1.code + $3.code + ">"; }
+    | E EQUAL E { $$.code = $1.code + $3.code + "=="; }
+    | E DIFF E { $$.code = $1.code + $3.code + "!="; }
+    | E GT_EQ E { $$.code = $1.code + $3.code + ">="; }
+    | E LT_EQ E { $$.code = $1.code + $3.code + "<="; }
     | E '+' E { $$.code = $1.code + $3.code + "+"; }
     | E '*' E { $$.code = $1.code + $3.code + "*"; }
     | E '/' E { $$.code = $1.code + $3.code + "/"; }
