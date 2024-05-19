@@ -43,7 +43,7 @@ vector<string> resolveAddr(vector<string> code);
 string getLabel(string prefix);
 void print(vector<string> code);
 vector<string> declareVariable(Decl type, Attributes attr);
-void verifyAttrib(string name);
+void verifyAttrib(string name, bool a);
 vector<string> vec(string s);
 
 %}
@@ -68,12 +68,14 @@ CMDs : CMDs CMD { $$.code = $1.code + $2.code; }
      | {$$.clear();}
      ;
 
-CMD : DECL_LET
-    | DECL_CONST
-    | DECL_VAR
+CMD : DECL_LET ';'
+    | DECL_CONST ';'
+    | DECL_VAR ';'
     | CMD_IF
+    | CMD_FOR
     | '{' CMDs '}' { $$.code = $2.code; }
     | E ';' { $$.code = $1.code + "^";}
+    | ';' { $$.clear(); }
     ;
 
 CMD_IF : IF '(' E ')' CMD 
@@ -103,51 +105,72 @@ CMD_IF : IF '(' E ')' CMD
                 def_lbl_end_if                  // Fim do IF
                 ;
     }
+
+CMD_FOR : FOR '(' PRIM_E ';' E ';' E ')' CMD 
+        { string lbl_fim_for = getLabel( "fim_for" );
+          string lbl_condicao_for = getLabel( "condicao_for" );
+          string lbl_comando_for = getLabel( "comando_for" );
+          string definicao_lbl_fim_for = ":" + lbl_fim_for;
+          string definicao_lbl_condicao_for = ":" + lbl_condicao_for;
+          string definicao_lbl_comando_for = ":" + lbl_comando_for;
+          
+          $$.code = $3.code + definicao_lbl_condicao_for +
+                 $5.code + lbl_comando_for + "?" + lbl_fim_for + "#" +
+                 definicao_lbl_comando_for + $9.code + 
+                 $7.code + "^" + lbl_condicao_for + "#" +
+                 definicao_lbl_fim_for;
+        }
+        ;
+
+PRIM_E : DECL_LET 
+       | E  
+         { $$.code = $1.code + "^"; }
+       ;
     
-DECL_LET : LET LET_IDs ';' { $$ = $2; }
+DECL_LET : LET LET_IDs { $$.code = $2.code; }
          ;
          
 LET_IDs : LET_ID ',' LET_IDs { $$.code = $1.code + $3.code; }
         | LET_ID
         ;
 
-LET_ID : ID { declareVariable(DeclLet, $1); $$.code = $1.code + "&"; }
-       | ID '=' E { declareVariable(DeclLet, $1); $$.code = $1.code + "&" + $1.code + $3.code + "=" + "^"; }
+LET_ID : ID { $$.code = declareVariable(DeclLet, $1); }
+       | ID '=' E {  $$.code = declareVariable(DeclLet, $1) + $1.code + $3.code + "=" + "^"; }
        ;
 
-DECL_CONST : CONST CONST_IDs ';' { $$ = $2; }
+DECL_CONST : CONST CONST_IDs { $$.code = $2.code; }
          ;
 
 CONST_IDs : CONST_ID ',' CONST_IDs { $$.code = $1.code + $3.code; }
         | CONST_ID
         ;
 
-CONST_ID : ID { declareVariable(DeclConst, $1); $$.code = $1.code + "&"; }
-       | ID '=' E { declareVariable(DeclConst, $1); $$.code = $1.code + "&" + $1.code + $3.code + "=" + "^"; }
+CONST_ID : ID {  $$.code = declareVariable(DeclConst, $1); }
+       | ID '=' E { $$.code = declareVariable(DeclConst, $1) + $1.code + $3.code + "=" + "^"; }
        ;
 
-DECL_VAR : VAR VAR_IDs ';' { $$ = $2; }
+DECL_VAR : VAR VAR_IDs { $$.code = $2.code; }
          ;
 
 VAR_IDs : VAR_ID ',' VAR_IDs { $$.code = $1.code + $3.code; }
         | VAR_ID
         ;
 
-VAR_ID : ID { declareVariable(DeclVar, $1); $$.code = $1.code + "&"; }
-       | ID '=' E { declareVariable(DeclVar, $1); $$.code = $1.code + "&" + $1.code + $3.code + "=" + "^"; }
-       ;
+VAR_ID : ID { $$.code = declareVariable(DeclVar, $0); }
+       | ID '=' E { $$.code = declareVariable(DeclVar, $1) + $1.code + $3.code + "=" + "^"; }
+       ; 
 
-E : LVALUE '=' E { verifyAttrib($1.code[0]); $$.code = $1.code + $3.code + "="; }
-    | LVALUE PLUS_PLUS { verifyAttrib($1.code[0]); $$.code = $1.code + "@" + $1.code + $1.code + "@" + "1" + "+" + "=" + "^"; }
-    | LVALUE PLUS_EQ E { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "@" + $3.code + "+" + "="; }
-    | LVALUEPROP '=' E 	{ $$.code = $1.code + $3.code + "[=]"; }
-    | LVALUEPROP PLUS_EQ E { verifyAttrib($1.code[0]); $$.code = $1.code + $1.code + "[@]" + $3.code + "+" + "[=]"; }
-    | E '<' E { $$.code = $1.code + $3.code + "<"; }
-    | E '>' E { $$.code = $1.code + $3.code + ">"; }
+E : LVALUE '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + "="; }
+    | LVALUE PLUS_PLUS { verifyAttrib($1.code[0], true); $$.code = $1.code + "@" + $1.code + $1.code + "@" + "1" + "+" + "=" + "^"; } // poe o valor da var na pilha. soma, desempilha o resultado.
+    | LVALUE PLUS_EQ E { verifyAttrib($1.code[0], true); $$.code = $1.code + $1.code + "@" + $3.code + "+" + "="; }
+    | LVALUEPROP '=' E 	{ verifyAttrib($1.code[0], true); $$.code = $1.code + $3.code + "[=]"; }
+    | LVALUEPROP PLUS_EQ E { verifyAttrib($1.code[0], true); $$.code = $1.code + $1.code + "[@]" + $3.code + "+" + "[=]"; }
     | E EQUAL E { $$.code = $1.code + $3.code + "=="; }
     | E DIFF E { $$.code = $1.code + $3.code + "!="; }
     | E GT_EQ E { $$.code = $1.code + $3.code + ">="; }
     | E LT_EQ E { $$.code = $1.code + $3.code + "<="; }
+    | E '<' E { $$.code = $1.code + $3.code + "<"; }
+    | E '>' E { $$.code = $1.code + $3.code + ">"; }
     | E '+' E { $$.code = $1.code + $3.code + "+"; }
     | E '*' E { $$.code = $1.code + $3.code + "*"; }
     | E '/' E { $$.code = $1.code + $3.code + "/"; }
@@ -159,8 +182,8 @@ E : LVALUE '=' E { verifyAttrib($1.code[0]); $$.code = $1.code + $3.code + "="; 
     | FLOAT
     | INT
     | STRING
-    | LVALUE 	    { $$.code = $1.code + "@"; }
-    | LVALUEPROP    { $$.code = $1.code + "[@]"; }
+    | LVALUE 	    { verifyAttrib($1.code[0], false); $$.code = $1.code + "@"; }
+    | LVALUEPROP    { verifyAttrib($1.code[0], false); $$.code = $1.code + "[@]"; }
     | '(' E ')'     { $$.code = $2.code; }
 
 LVALUE  :   ID 
@@ -234,9 +257,9 @@ vector<string> declareVariable(Decl type, Attributes attr){
     exit(1);     
 }
 
-void verifyAttrib(string name) {
+void verifyAttrib(string name, bool a) {
     if(symbols.count(name) > 0) {
-        if(symbols[name].type == DeclConst) {
+        if(a && symbols[name].type == DeclConst) {
             cerr << "Erro: a variável '" << name << "' não pode ser modificada." << endl;
             exit(1);     
         }
