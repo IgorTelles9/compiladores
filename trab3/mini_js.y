@@ -73,6 +73,7 @@ CMD : DECL_LET ';'
     | DECL_VAR ';'
     | CMD_IF
     | CMD_FOR
+    | CMD_WHILE
     | '{' CMDs '}' { $$.code = $2.code; }
     | E ';' { $$.code = $1.code + "^";}
     | ';' { $$.clear(); }
@@ -104,6 +105,23 @@ CMD_IF : IF '(' E ')' CMD
                 def_lbl_true + $5.code +        // Código do True
                 def_lbl_end_if                  // Fim do IF
                 ;
+    }
+
+CMD_WHILE : WHILE '(' E ')' CMD 
+    {
+        string lbl_cond_while = getLabel("lbl_cond_while");
+        string def_lbl_cond_while = ":" + lbl_cond_while;
+        string lbl_cmd_while = getLabel("lbl_cmd_while");
+        string def_lbl_cmd_while = ":" + lbl_cmd_while;
+        string lbl_end_while = getLabel("lbl_end_while");
+        string def_lbl_end_while = ":" + lbl_end_while;
+        
+        $$.code = def_lbl_cond_while 
+                + $3.code + lbl_cmd_while + "?" 
+                + lbl_end_while + "#" 
+                + def_lbl_cmd_while + $5.code 
+                + lbl_cond_while + "#"
+                + def_lbl_end_while;
     }
 
 CMD_FOR : FOR '(' PRIM_E ';' E ';' E ')' CMD 
