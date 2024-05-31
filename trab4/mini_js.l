@@ -6,7 +6,7 @@ DIGITO      [0-9]
 LETRA       [a-zA-Z_]
 INTEIRO     {DIGITO}+
 BOOL        (true|false)
-FLUTUANTE   {DIGITO}+((\.{DIGITO}+)?([Ee][+\-]?{DIGITO}+)?)+
+FLUTUANTE   {DIGITO}+\.(({DIGITO}+)?([Ee][+\-]?{DIGITO}+)?)+
 STRING      (\"([^\"\n]*)\")|{STRING_ESC}  
 STRING_ESC  [\"][^\"]*([\\]|[\"])[\"][^\"]*[\"]
 STRING_2     (\'([^\'\n]*)\')|{STRING_ESC_2}  
@@ -43,11 +43,11 @@ WS          [ \n\r\t]+
                 col += strlen( yytext ); 
                 return ASM; 
             }
+{FLUTUANTE} { updateAttributes(); return FLOAT;     }
+{INTEIRO}   { updateAttributes(); return INT;       }
 {BOOL}      { updateAttributes(); return BOOL;      }
 {STRING}    { updateAttributes(); return STRING;    }
 {STRING_2}  { updateAttributes(); return STRING;    }
-{INTEIRO}   { updateAttributes(); return INT;       }
-{FLUTUANTE} { updateAttributes(); return FLOAT;     }
 {ID}        { updateAttributes(); return ID;        }
 {WS}        {                                       } 
 .           { updateAttributes(); return yytext[0]; }

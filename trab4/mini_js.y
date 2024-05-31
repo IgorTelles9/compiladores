@@ -5,10 +5,14 @@
 #include <map>
 #include <tuple>
 #include <unordered_set>
+#include <sstream>
 
 using namespace std;
 
 int ln = 1, col = 0; 
+
+bool dev = false;
+bool isFunctionScope = false;
 
 struct Attributes {
     vector<string> code; 
@@ -44,6 +48,22 @@ vector<string> functions;
 extern "C" int yylex();
 int yyparse();
 void yyerror(const char *);
+
+void logMessage(std::ostream& os) {}
+
+template <typename T, typename... Args>
+void logMessage(ostream& os, T first, Args... args) {
+    os << first;
+    logMessage(os, args...);
+}
+
+template <typename... Args>
+void log(Args... args) {
+    if (dev) {
+        logMessage(cout, args...);
+        cout << endl;
+    }
+}
 
 vector<string> concat(vector<string> a, vector<string> b);
 vector<string> operator+(vector<string> a, vector<string> b);
@@ -105,7 +125,12 @@ PUSH_SYMBOLS : { symbols.push_back( map< string, Variable >{} ); }
 POP_SYMBOLS  : { symbols.pop_back(); }
              ;
 
-CMD_FUNCTION : FUNCTION ID { declareVariable(DeclVar, $2); } '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}'
+CMD_FUNCTION : FUNCTION ID 
+                { declareVariable(DeclVar, $2); } 
+                '(' PUSH_SYMBOLS PARAMS_LIST ')' 
+                { isFunctionScope = true; }
+                '{' CMDs '}'
+                { isFunctionScope = false; }
                 {
                     string lbl_func = getLabel("func_" + $2.code[0]);
                     string def_lbl_func = ":" + lbl_func;
@@ -113,7 +138,7 @@ CMD_FUNCTION : FUNCTION ID { declareVariable(DeclVar, $2); } '(' PUSH_SYMBOLS PA
                     $$.code =  $2.code + "&" + $2.code + 
                         "{}" + "=" + "'&funcao'" + lbl_func + 
                         "[=]" + "^";
-                    functions = functions + def_lbl_func + $6.code + $9.code +
+                    functions = functions + def_lbl_func + $6.code + $10.code +
                        "undefined" + "@" + "'&retorno'" + "@"+ "~";
                     symbols.pop_back();
                 }
@@ -271,10 +296,10 @@ E : LVALUE '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + 
     | '{' '}' { $$.code = vec("{}");               }
     | ARRAY   { $$.code = vec("[]");               } 
     | OBJ     { $$.code = vec("{}");               } 
-    | FLOAT
-    | INT
+    | FLOAT { log("float => ", $1.code[0]); }
+    | INT { log("int => ", $1.code[0]); }
     | BOOL
-    | STRING
+    | STRING   { log("string => ", $1.code[0]); }
     | E '(' ARGS_LIST ')'   { $$.code = $3.code + to_string( $3.args_counter ) + $1.code + "$"; }
     | LVALUE 	            { verifyAttrib($1.code[0], false); $$.code = $1.code + "@";         }
     | LVALUEPROP            { verifyAttrib($1.code[0], false); $$.code = $1.code + "[@]";       }
@@ -295,12 +320,12 @@ ARGS_LIST : ARGS
 ARGS : ARGS ',' E
         { 
             $$.code = $1.code + $3.code;
-            $$.args_counter = $1.args_counter + $3.args_counter; 
+            $$.args_counter++; 
         }
      | E
         { 
             $$.code = $1.code;
-            $$.args_counter = 1; 
+            $$.args_counter++; 
         }
      ;
 %%
@@ -354,19 +379,17 @@ void print(vector<string> code) {
 }
 
 vector<string> declareVariable(Decl type, Attributes attr){ 
-    /* cout << "Declarando variável" << endl; */
+   log("\nDeclarando variável");
     string name = attr.code[0];
     int ln = attr.ln, col = attr.col;
-    /* cout << "Nome: " << name << endl;
-    cout << "Tipo: " << type << endl;
-    cout << "Linha: " << ln << " Coluna: " << col << endl; */
+    log("Nome: ", name);
+    log("Tipo: ", type);
+    log("Linha: ",ln," Coluna: ",col);
 
     auto& current = symbols.back();
-    /* cout << "Current: " << current.size() << endl; */
 
     if(current.count(name) == 0) {
         current[name] = Variable{ln, col, type};
-        /* cout << "Current: " << current.size() << endl; */
         return vector<string>{name, "&"};
     }
     if(type == DeclVar && current[name].type == DeclVar ) {
@@ -383,20 +406,22 @@ vector<string> declareVariable(Decl type, string name, int ln, int col) {
 }
 
 void verifyAttrib(string name, bool a) {
-    /* cout << "Verificando atribuição" << endl;
-    cout << "Nome: " << name << endl; */
+    if (isFunctionScope) return;
+
+    log("\nVerificando atribuição" );
+    log("Nome: " , name );
 
     for (int i = symbols.size() - 1; i >=0; i--){
         auto& curr = symbols[i];
-        /* cout << " ==== escopo nivel " << i << " ====" << endl; */
-        /* for (const auto& pair : symbols[i]) {
-            cout << "Key: " << pair.first << endl;
-            cout << "Ln: " << pair.second.ln << endl;
-            cout << "Col: " << pair.second.col << endl;
-            cout << "Type: " << pair.second.type << endl;
-            cout << "====================" << endl;
+        log(" ==== escopo nivel " , i , " ====" );
+        for (const auto& pair : symbols[i]) {
+            log("Key: " , pair.first );
+            log("Ln: " , pair.second.ln );
+            log("Col: " , pair.second.col );
+            log("Type: " , pair.second.type );
+            log("====================" );
         }
-        cout << "curr.count(name): " << curr.count(name) << endl; */
+        log("curr.count(name): " , curr.count(name) );
         if(curr.count(name) > 0) {
             if(a && curr[name].type == DeclConst) {
                 cerr << "Erro: a variável '" << name << "' não pode ser modificada." << endl;
