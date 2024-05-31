@@ -16,7 +16,7 @@ WS          [ \n\r\t]+
 %%
 "\t"        { col += 4;                             }
 " "         { col += 1;                             }
-"\n"        { col = 1; ln += 1;                     }
+"\n"        { col = 1; ln +=1;                     }
 "&&"        { updateAttributes(); return AND;       }
 "||"        { updateAttributes(); return OR;        }
 "=="        { updateAttributes(); return EQUAL;     }
@@ -37,6 +37,12 @@ WS          [ \n\r\t]+
 "print"     { updateAttributes(); return PRINT;     }
 "function"  { updateAttributes(); return FUNCTION;  }
 "return"    { updateAttributes(); return RETURN;    }
+"asm{".*"}" {  
+                string mdp = trim( yytext + 3, "{}" ); 
+                yylval.code = tokeniza( mdp );
+                col += strlen( yytext ); 
+                return ASM; 
+            }
 {STRING}    { updateAttributes(); return STRING;    }
 {STRING_2}  { updateAttributes(); return STRING;    }
 {INTEIRO}   { updateAttributes(); return INT;       }

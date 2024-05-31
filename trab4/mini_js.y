@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <tuple>
+#include <algorithm>
 
 using namespace std;
 
@@ -20,6 +21,7 @@ struct Attributes {
 
     void clear() {
         code.clear();
+        default_value.clear();
         ln = 0;
         col = 0;
         args_counter = 0;
@@ -37,7 +39,7 @@ struct Variable {
 };
 
 vector<map<string,Variable>> symbols = { map< string, Variable >{} }; 
-vector<string> functions = {};
+vector<string> functions;
 
 extern "C" int yylex();
 int yyparse();
@@ -47,6 +49,7 @@ vector<string> concat(vector<string> a, vector<string> b);
 vector<string> operator+(vector<string> a, vector<string> b);
 vector<string> operator+(vector<string> a, string b);
 vector<string> operator+(string a, vector<string> b);
+bool operator!=(vector<string> a, vector<string> b);
 vector<string> resolveAddr(vector<string> code);
 string getLabel(string prefix);
 void print(vector<string> code);
@@ -57,24 +60,27 @@ vector<string> vec(string s);
 vector<string> declareFunction(Attributes attr);
 tuple<string,string,string,string> generateIfLabels();
 vector<string> generateParamsCode(Attributes attr);
+string trim(string str, string charsToTrim);
+vector<string> getFormattedMdpCode(string mdpCode);
 
 %}
 
 %token AND OR EQUAL GT_EQ LT_EQ DIFF PLUS_EQ PLUS_PLUS
-%token OBJ ARRAY IF ELSE FOR WHILE LET CONST VAR
+%token OBJ ARRAY IF ELSE FOR WHILE LET CONST VAR ASM
 %token PRINT STRING INT FLOAT ID FUNCTION RETURN
 
 %right '='
-%nonassoc '<' '>'
+%nonassoc '<' '>' IF ELSE 
+%nonassoc EQUAL GT_EQ PLUS_PLUS
+%nonassoc PLUS_EQ LT_EQ DIFF 
 %left '+' '-'
 %left '*' '/' '%'
-
-%left '(','['
+%left '(' '[' '{'
 %right '.'
 
 %%
 S : CMDs { print(resolveAddr($1.code  + "." + functions)); }
-    ;
+  ;
 
 CMDs : CMDs CMD { $$.code = $1.code + $2.code; }
      | {$$.clear();}
@@ -88,8 +94,8 @@ CMD : DECL_LET ';'
     | CMD_WHILE
     | CMD_FUNCTION
     | RETURN E ';' { $$.code = $2.code + "'&retorno'" + "@" + "~"; }
-    | PRINT E ';' { $$.code = $2.code + "println" + "#"; }
-    | '{' PUSH_SYMBOLS CMDs '}' POP_SYMBOLS { $$.code = "<{" + $3.code + "}>"; }
+    | E ASM ';' { $$.code = $1.code + $2.code + "^"; }
+    | '{' PUSH_SYMBOLS CMDs '}' { symbols.pop_back(); $$.code = vec("<{") + $3.code + vec("}>"); }
     | E ';' { $$.code = $1.code + "^";}
     | ';' { $$.clear(); }
     ;
@@ -99,7 +105,7 @@ PUSH_SYMBOLS : { symbols.push_back( map< string, Variable >{} ); }
 POP_SYMBOLS  : { symbols.pop_back(); }
              ;
 
-CMD_FUNCTION : FUNCTION ID { declareFunction($2); } '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}'  //POP_SYMBOLS
+CMD_FUNCTION : FUNCTION ID { declareFunction($2); } '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}'
                 {
                     string lbl_func = getLabel("func_" + $2.code[0]);
                     string def_lbl_func = ":" + lbl_func;
@@ -240,7 +246,7 @@ VAR_IDs : VAR_ID ',' VAR_IDs { $$.code = $1.code + $3.code; }
         | VAR_ID
         ;
 
-VAR_ID : ID { $$.code = declareVariable(DeclVar, $0); }
+VAR_ID : ID { $$.code = declareVariable(DeclVar, $1); }
        | ID '=' E { $$.code = declareVariable(DeclVar, $1) + $1.code + $3.code + "=" + "^"; }
        ; 
 
@@ -260,9 +266,11 @@ E : LVALUE '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + 
     | E '/' E { $$.code = $1.code + $3.code + "/"; }
     | E '-' E { $$.code = $1.code + $3.code + "-"; }
     | E '%' E { $$.code = $1.code + $3.code + "%"; }
-    | '-' E   {$$.code = "0" + $2.code + $1.code; }
-    | ARRAY   { $$.code = vec("[]"); } 
-    | OBJ     { $$.code = vec("{}"); } 
+    | '-' E   { $$.code = "0" + $2.code + $1.code; }
+    | '[' ']' { $$.code = vec("[]");               }
+    | '{' '}' { $$.code = vec("{}");               }
+    | ARRAY   { $$.code = vec("[]");               } 
+    | OBJ     { $$.code = vec("{}");               } 
     | FLOAT
     | INT
     | STRING
@@ -406,9 +414,9 @@ vector<string> vec(string s) {
 
 vector<string> declareFunction( Attributes attr ) {
     /* cout << "Declarando função" << endl; */
-    auto r = declareVariable( DeclVar, attr );
+    return declareVariable( DeclVar, attr );
     /* cout << "Retorno: " << r[0] << ";" << r[1] << endl; */
-    return r;
+    /* return r; */
 }
 
 tuple<string,string,string,string> generateIfLabels(){
@@ -427,6 +435,28 @@ vector<string> generateParamsCode(Attributes attr){
         lbl_true + "?" + lbl_end_if + "#" + 
         def_lbl_true + attr.code + attr.default_value + "=" + "^" +
         def_lbl_end_if;
+}
+
+string trim(string str, string charsToTrim){
+	for(auto c : charsToTrim){
+		str.erase(remove(str.begin(), str.end(), c), str.end());
+	}
+	return str;
+}
+
+vector<string> getFormattedMdpCode(string mdpCode){
+	vector<string> formattedMdp;
+	string instr = "";
+	for(auto c : mdpCode){
+		if(c != ' ')
+			instr = instr + c;
+		else {
+			formattedMdp.push_back(instr);
+			instr = "";
+		}
+	}
+	formattedMdp.push_back(instr);
+	return formattedMdp;
 }
 
 void yyerror( const char* st ) {
