@@ -5,6 +5,7 @@ void updateAttributes();
 DIGITO      [0-9]
 LETRA       [a-zA-Z_]
 INTEIRO     {DIGITO}+
+BOOL        (true|false)
 FLUTUANTE   {DIGITO}+((\.{DIGITO}+)?([Ee][+\-]?{DIGITO}+)?)+
 STRING      (\"([^\"\n]*)\")|{STRING_ESC}  
 STRING_ESC  [\"][^\"]*([\\]|[\"])[\"][^\"]*[\"]
@@ -34,15 +35,15 @@ WS          [ \n\r\t]+
 "let"       { updateAttributes(); return LET;       }
 "const"     { updateAttributes(); return CONST;     }
 "var"       { updateAttributes(); return VAR;       }
-"print"     { updateAttributes(); return PRINT;     }
 "function"  { updateAttributes(); return FUNCTION;  }
 "return"    { updateAttributes(); return RETURN;    }
 "asm{".*"}" {  
                 string mdp = trim( yytext + 3, "{}" ); 
-                yylval.code = tokeniza( mdp );
+                yylval.code = getFormattedMdpCode( mdp );
                 col += strlen( yytext ); 
                 return ASM; 
             }
+{BOOL}      { updateAttributes(); return BOOL;      }
 {STRING}    { updateAttributes(); return STRING;    }
 {STRING_2}  { updateAttributes(); return STRING;    }
 {INTEIRO}   { updateAttributes(); return INT;       }

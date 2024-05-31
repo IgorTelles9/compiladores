@@ -4,7 +4,7 @@
 #include <vector>
 #include <map>
 #include <tuple>
-#include <algorithm>
+#include <unordered_set>
 
 using namespace std;
 
@@ -67,7 +67,7 @@ vector<string> getFormattedMdpCode(string mdpCode);
 
 %token AND OR EQUAL GT_EQ LT_EQ DIFF PLUS_EQ PLUS_PLUS
 %token OBJ ARRAY IF ELSE FOR WHILE LET CONST VAR ASM
-%token PRINT STRING INT FLOAT ID FUNCTION RETURN
+%token STRING INT FLOAT ID FUNCTION RETURN BOOL
 
 %right '='
 %nonassoc '<' '>' IF ELSE 
@@ -105,7 +105,7 @@ PUSH_SYMBOLS : { symbols.push_back( map< string, Variable >{} ); }
 POP_SYMBOLS  : { symbols.pop_back(); }
              ;
 
-CMD_FUNCTION : FUNCTION ID { declareFunction($2); } '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}'
+CMD_FUNCTION : FUNCTION ID { declareVariable(DeclVar, $2); } '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}'
                 {
                     string lbl_func = getLabel("func_" + $2.code[0]);
                     string def_lbl_func = ":" + lbl_func;
@@ -273,6 +273,7 @@ E : LVALUE '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + 
     | OBJ     { $$.code = vec("{}");               } 
     | FLOAT
     | INT
+    | BOOL
     | STRING
     | E '(' ARGS_LIST ')'   { $$.code = $3.code + to_string( $3.args_counter ) + $1.code + "$"; }
     | LVALUE 	            { verifyAttrib($1.code[0], false); $$.code = $1.code + "@";         }
@@ -412,12 +413,6 @@ vector<string> vec(string s) {
     return vector<string>{s};
 }
 
-vector<string> declareFunction( Attributes attr ) {
-    /* cout << "Declarando função" << endl; */
-    return declareVariable( DeclVar, attr );
-    /* cout << "Retorno: " << r[0] << ";" << r[1] << endl; */
-    /* return r; */
-}
 
 tuple<string,string,string,string> generateIfLabels(){
     string lbl_true = getLabel( "lbl_true" );
@@ -437,11 +432,14 @@ vector<string> generateParamsCode(Attributes attr){
         def_lbl_end_if;
 }
 
-string trim(string str, string charsToTrim){
-	for(auto c : charsToTrim){
-		str.erase(remove(str.begin(), str.end(), c), str.end());
-	}
-	return str;
+string trim(string str, string charsToTrim) {
+    unordered_set<char> removeSet(charsToTrim.begin(), charsToTrim.end());
+    string result = "";
+    for (char c : str) 
+        if (removeSet.find(c) == removeSet.end()) 
+            result += c;
+        
+    return result;
 }
 
 vector<string> getFormattedMdpCode(string mdpCode){
@@ -449,7 +447,7 @@ vector<string> getFormattedMdpCode(string mdpCode){
 	string instr = "";
 	for(auto c : mdpCode){
 		if(c != ' ')
-			instr = instr + c;
+			instr += c;
 		else {
 			formattedMdp.push_back(instr);
 			instr = "";
