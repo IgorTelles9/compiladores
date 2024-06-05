@@ -396,7 +396,7 @@ vector<string> declareVariable(Decl type, Attributes attr){
         current[name] = Variable{ln, col, type};
         return vector<string>{};
     } 
-    cerr << "Erro: a variável '" << name << "' ja foi declarada na linha " << current[name].ln << "." << endl;
+    cerr << "Erro: a variável '" << name << "' já foi declarada na linha " << current[name].ln << "." << endl;
     exit(1);     
 }
 
