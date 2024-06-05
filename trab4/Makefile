@@ -8,7 +8,7 @@ lex.yy.c: mini_js.l
 	lex mini_js.l
 	
 mini_js.tab.c: mini_js.y
-	bison mini_js.y
+	bison mini_js.y 
 	
 clean: 
 	rm -f lex.yy.c mini_js.tab.c saida

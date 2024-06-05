@@ -9,9 +9,10 @@
 
 using namespace std;
 
+bool dev = false; // not logging
+
 int ln = 1, col = 0; 
 
-bool dev = false;
 bool isFunctionScope = false;
 
 struct Attributes {
@@ -49,6 +50,8 @@ extern "C" int yylex();
 int yyparse();
 void yyerror(const char *);
 
+// log functions ---
+
 void logMessage(std::ostream& os) {}
 
 template <typename T, typename... Args>
@@ -65,11 +68,12 @@ void log(Args... args) {
     }
 }
 
+// -------------------
+
 vector<string> concat(vector<string> a, vector<string> b);
 vector<string> operator+(vector<string> a, vector<string> b);
 vector<string> operator+(vector<string> a, string b);
 vector<string> operator+(string a, vector<string> b);
-bool operator!=(vector<string> a, vector<string> b);
 vector<string> resolveAddr(vector<string> code);
 string getLabel(string prefix);
 void print(vector<string> code);
@@ -121,8 +125,6 @@ CMD : DECL_LET ';'
     ;
 
 PUSH_SYMBOLS : { symbols.push_back( map< string, Variable >{} ); } 
-             ;
-POP_SYMBOLS  : { symbols.pop_back(); }
              ;
 
 CMD_FUNCTION : FUNCTION ID 
