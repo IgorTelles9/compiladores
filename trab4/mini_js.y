@@ -79,7 +79,7 @@ void verifyAttrib(string name, bool a);
 vector<string> vec(string s);
 vector<string> declareFunction(Attributes attr);
 tuple<string,string,string,string> generateIfLabels();
-vector<string> generateParamsCode(Attributes attr);
+vector<string> generateDefaultParamsCode(Attributes attr);
 string trim(string str, string charsToTrim);
 vector<string> getFormattedMdpCode(string mdpCode);
 
@@ -127,8 +127,8 @@ POP_SYMBOLS  : { symbols.pop_back(); }
 
 CMD_FUNCTION : FUNCTION ID 
                 { declareVariable(DeclVar, $2); } 
-                '(' PUSH_SYMBOLS PARAMS_LIST ')' 
                 { isFunctionScope = true; }
+                '(' PUSH_SYMBOLS PARAMS_LIST ')' 
                 '{' CMDs '}'
                 { isFunctionScope = false; }
                 {
@@ -138,7 +138,7 @@ CMD_FUNCTION : FUNCTION ID
                     $$.code =  $2.code + "&" + $2.code + 
                         "{}" + "=" + "'&funcao'" + lbl_func + 
                         "[=]" + "^";
-                    functions = functions + def_lbl_func + $6.code + $10.code +
+                    functions = functions + def_lbl_func + $7.code + $10.code +
                        "undefined" + "@" + "'&retorno'" + "@"+ "~";
                     symbols.pop_back();
                 }
@@ -152,7 +152,7 @@ PARAMS : PARAMS ',' PARAM
             $$.code = $1.code + $3.code + "&" + $3.code + "arguments" + "@" 
                 + to_string($1.args_counter) + "[@]" + "=" + "^";
             if ($3.default_value.size() > 0) 
-                $$.code = $$.code + $3.code + $3.default_value + "=" + "^"; //generateParamsCode($3);
+                $$.code = $$.code + generateDefaultParamsCode($3);
             $$.args_counter = $1.args_counter + $3.args_counter;
         }
        | PARAM
@@ -160,7 +160,7 @@ PARAMS : PARAMS ',' PARAM
             $$.code = $1.code + "&" + $1.code + "arguments" + "@" 
                 + "0" + "[@]" + "=" + "^";
             if ($1.default_value.size() > 0) 
-                $$.code = $$.code + $1.code + $1.default_value + "=" + "^"; //generateParamsCode($1);
+                $$.code = $$.code + generateDefaultParamsCode($1);
             $$.args_counter = $1.args_counter;
        }
 
@@ -447,7 +447,7 @@ tuple<string,string,string,string> generateIfLabels(){
     return make_tuple(lbl_true, lbl_end_if, def_lbl_true, def_lbl_end_if);
 }
 
-vector<string> generateParamsCode(Attributes attr){
+vector<string> generateDefaultParamsCode(Attributes attr){
     string lbl_true, lbl_end_if, def_lbl_true, def_lbl_end_if;
     tie(lbl_true, lbl_end_if, def_lbl_true, def_lbl_end_if) = generateIfLabels();
     return declareVariable(DeclVar, "df_name", 1, 1) +

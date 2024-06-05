@@ -1,5 +1,17 @@
-function f( x, y, z ) { 
-  let z;
-  return x*x + y;
+function log( msg = 'Default!', pular_linha = f() ) {
+  if( pular_linha )
+    msg asm{println # undefined};
+  else
+    msg asm{print # undefined};
 }
-let f( 5.2, 7 );
+
+function f( a = f( 1 ) ) {
+    log( 'Parametro a: ', false ); log( ' ', false ); log( a, true ); 
+    if( a == true )
+    return false;
+    else
+    return a == 1;
+}
+
+
+log( f() );
