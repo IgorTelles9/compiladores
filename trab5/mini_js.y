@@ -152,7 +152,7 @@ PARAMS_LIST : PARAMS
 
 PARAMS : PARAMS ',' PARAM 
         {
-            declareVariable(DeclLet, $3);
+            // declareVariable(DeclLet, $3);
             $$.code = $1.code + $3.code + "&" + $3.code + "arguments" + "@" 
                 + to_string($1.args_counter) + "[@]" + "=" + "^";
             if ($3.default_value.size() > 0) 
@@ -161,7 +161,7 @@ PARAMS : PARAMS ',' PARAM
         }
        | PARAM
        {    
-            declareVariable(DeclLet, $1);
+            // declareVariable(DeclLet, $1);
             $$.code = $1.code + "&" + $1.code + "arguments" + "@" 
                 + "0" + "[@]" + "=" + "^";
             if ($1.default_value.size() > 0) 
@@ -353,6 +353,7 @@ E   : ID '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + "=
             symbols.pop_back();
         }   
     | ANON_FUNC
+    | ARRAY 
     ;
     
 LVALUEPROP  :   E '.' ID { $$.code = $1.code + $3.code; }
@@ -404,10 +405,21 @@ OBJ_FIELD : ID ':' E { $$.code = $1.code + $3.code + "[<=]"; }
           | ID ':' OBJ { $$.code = $1.code + $3.code + "[<=]"; }
           ;
 
-/* ARRAY : '[' ARRAY_ARGS ']' {$$.code = $2.code; }
+ARRAY : '[' ARRAY_ARGS ']' {$$.code = $2.code; }
       ;
 
-ARRAY_ARGS : ARRAY_ARGS ',' ARRAY_ARG { $$.code = $1.code + to_string()} */
+ARRAY_ARGS : ARRAY_ARGS ',' ARRAY_ARG { 
+        $$.code = $1.code + to_string($1.args_counter) + $3.code + "[<=]"; 
+        $$.args_counter++;
+    }
+    | ARRAY_ARG { 
+        $$.code = $1.code + to_string($1.args_counter) + "[<=]"; 
+        $$.args_counter++;
+    }
+
+ARRAY_ARG : E 
+          | OBJ 
+          ;  
 
 
 
