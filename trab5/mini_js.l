@@ -21,10 +21,11 @@ EMPTY_BLOCK \{\s*\}
 "\n"            { col = 1; ln +=1;                             }
 "&&"            { updateAttributes(); return AND;              }
 "||"            { updateAttributes(); return OR;               }
-"=="            { updateAttributes(); return EQUAL;            }
-">="            { updateAttributes(); return GT_EQ;            }
+"=>"            { updateAttributes(); return ARROW;            }
 "<="            { updateAttributes(); return LT_EQ;            }
+">="            { updateAttributes(); return GT_EQ;            }
 "!="            { updateAttributes(); return DIFF;             }
+"=="            { updateAttributes(); return EQUAL;            }
 "+="            { updateAttributes(); return PLUS_EQ;          }
 "++"            { updateAttributes(); return PLUS_PLUS;        }
 "if"            { updateAttributes(); return IF;               }
@@ -33,21 +34,20 @@ EMPTY_BLOCK \{\s*\}
 "while"         { updateAttributes(); return WHILE;            }
 "let"           { updateAttributes(); return LET;              }
 "const"         { updateAttributes(); return CONST;            }
+"return"        { updateAttributes(); return RETURN;           }
 "var"           { updateAttributes(); return VAR;              }
 "function"      { updateAttributes(); return FUNCTION;         }
-"=>"            { updateAttributes(); return ARROW;            }
 ")"/.*"=>"      { updateAttributes(); return PARENTESIS_ARROW; }
 "=> {"          { updateAttributes(); return ARROW_OBJ;        }
-"return"        { updateAttributes(); return RETURN;           }
 "asm{".*"}"     {  
                     string mdp = trim( yytext + 3, "{}" ); 
                     yylval.code = getFormattedMdpCode( mdp );
                     col += strlen( yytext ); 
                     return ASM; 
                 }
-{FLUTUANTE} { updateAttributes(); return FLOAT;     }
-{INTEIRO}   { updateAttributes(); return INT;       }
 {BOOL}      { updateAttributes(); return BOOL;      }
+{INTEIRO}   { updateAttributes(); return INT;       }
+{FLUTUANTE} { updateAttributes(); return FLOAT;     }
 {STRING}    { updateAttributes(); return STRING;    }
 {STRING_2}  { updateAttributes(); return STRING;    }
 {ID}        { updateAttributes(); return ID;        }

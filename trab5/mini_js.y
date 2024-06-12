@@ -86,6 +86,7 @@ tuple<string,string,string,string> generateIfLabels();
 vector<string> generateDefaultParamsCode(Attributes attr);
 string trim(string str, string charsToTrim);
 vector<string> getFormattedMdpCode(string mdpCode);
+void pushSymbols();
 void verifyReturn();
 
 %}
@@ -94,10 +95,10 @@ void verifyReturn();
 %token IF ELSE FOR WHILE LET CONST VAR ASM ARROW ARROW_OBJ
 %token STRING INT FLOAT ID FUNCTION RETURN BOOL PARENTESIS_ARROW
 
-%right '='
+%right '=' ARROW 
 %nonassoc '<' '>' IF ELSE 
-%nonassoc EQUAL GT_EQ PLUS_PLUS
-%nonassoc PLUS_EQ LT_EQ DIFF 
+%nonassoc EQUAL GT_EQ PLUS_PLUS PLUS_EQ LT_EQ DIFF 
+%left AND OR
 %left '+' '-'
 %left '*' '/' '%'
 %left '(' '[' '{'
@@ -122,20 +123,19 @@ CMD : DECL_LET ';'
     | RETURN OBJ ';' { verifyReturn(); $$.code = $2.code + "'&retorno'" + "@" + "~"; }
     | E ASM ';' { $$.code = $1.code + $2.code + "^"; }
     | '{' PUSH_SYMBOLS CMDs '}' { symbols.pop_back(); $$.code = vec("<{") + $3.code + vec("}>"); }
-    | E ';' { $$.code = $1.code + "^";}
+    | E ';' { $$.code = $1.code + "^"; }
     | ';' { $$.clear(); }
     | EMPTY_BLOCK { $$.clear(); }
     ;
 
-PUSH_SYMBOLS : { symbols.push_back( map< string, Variable >{} ); } 
+PUSH_SYMBOLS : { pushSymbols(); } 
              ;
 
 CMD_FUNCTION : FUNCTION ID 
                 { declareVariable(DeclVar, $2); } 
+                '(' PARAMS_LIST ')' 
                 { isFunctionScope++; }
-                '(' PUSH_SYMBOLS PARAMS_LIST ')' 
                 '{' CMDs '}'
-                { isFunctionScope--; }
                 {
                     string lbl_func = getLabel("func_" + $2.code[0]);
                     string def_lbl_func = ":" + lbl_func;
@@ -143,49 +143,50 @@ CMD_FUNCTION : FUNCTION ID
                     $$.code =  $2.code + "&" + $2.code + 
                         "{}" + "=" + "'&funcao'" + lbl_func + 
                         "[=]" + "^";
-                    functions = functions + def_lbl_func + $7.code + $10.code +
+                    functions = functions + def_lbl_func + $5.code + $9.code +
                        "undefined" + "@" + "'&retorno'" + "@"+ "~";
+                    isFunctionScope--; 
                     symbols.pop_back();
                 }
 
 PARAMS_LIST : PARAMS 
-            | { $$.clear(); }
+            | { pushSymbols(); $$.code.clear(); }
             ;
 
 PARAMS : PARAMS ',' PARAM 
         {
-            // declareVariable(DeclLet, $3);
+            declareVariable(DeclLet, $3);
             $$.code = $1.code + $3.code + "&" + $3.code + "arguments" + "@" 
                 + to_string($1.args_counter) + "[@]" + "=" + "^";
             if ($3.default_value.size() > 0) 
                 $$.code = $$.code + generateDefaultParamsCode($3);
             $$.args_counter = $1.args_counter + $3.args_counter;
         }
-       | PARAM
+       | PARAM 
        {    
-            // declareVariable(DeclLet, $1);
+            pushSymbols();
+            declareVariable(DeclLet, $1);
             $$.code = $1.code + "&" + $1.code + "arguments" + "@" 
                 + "0" + "[@]" + "=" + "^";
             if ($1.default_value.size() > 0) 
                 $$.code = $$.code + generateDefaultParamsCode($1);
             $$.args_counter = $1.args_counter;
        }
-
        ;
+
 PARAM   : ID 
             {
                 $$.code = $1.code;
                 $$.default_value.clear();
                 $$.args_counter = 1;
-                declareVariable(DeclLet, $1);
             }
         | ID '=' E 
             {
                 $$.code = $1.code;
                 $$.default_value = $3.code;
                 $$.args_counter = 1;
-                declareVariable(DeclLet, $1);
             }
+        ;
 
 CMD_IF : IF '(' E ')' CMD 
     {
@@ -210,6 +211,7 @@ CMD_IF : IF '(' E ')' CMD
                 def_lbl_end_if                  // Fim do IF
                 ;
     }
+    ;
 
 CMD_WHILE : WHILE '(' E ')' CMD 
     {
@@ -227,6 +229,7 @@ CMD_WHILE : WHILE '(' E ')' CMD
                 + lbl_cond_while + "#"
                 + def_lbl_end_while;
     }
+    ;
 
 CMD_FOR : FOR '(' PRIM_E ';' E ';' E ')' CMD 
         { string lbl_fim_for = getLabel( "fim_for" );
@@ -291,10 +294,10 @@ E   : ID '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + "=
     | ID PLUS_EQ E { verifyAttrib($1.code[0], true); $$.code = $1.code + $1.code + "@" + $3.code + "+" + "="; }
     | LVALUEPROP '=' E 	{ verifyAttrib($1.code[0], true); $$.code = $1.code + $3.code + "[=]"; }
     | LVALUEPROP PLUS_EQ E { verifyAttrib($1.code[0], true); $$.code = $1.code + $1.code + "[@]" + $3.code + "+" + "[=]"; }
-    | E EQUAL E { $$.code = $1.code + $3.code + "=="; }
-    | E DIFF E { $$.code = $1.code + $3.code + "!="; }
     | E GT_EQ E { $$.code = $1.code + $3.code + ">="; }
     | E LT_EQ E { $$.code = $1.code + $3.code + "<="; }
+    | E DIFF E { $$.code = $1.code + $3.code + "!="; }
+    | E EQUAL E { $$.code = $1.code + $3.code + "=="; }
     | E '<' E { $$.code = $1.code + $3.code + "<"; }
     | E '>' E { $$.code = $1.code + $3.code + ">"; }
     | E '+' E { $$.code = $1.code + $3.code + "+"; }
@@ -319,9 +322,9 @@ E   : ID '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + "=
         }
     | '(' E ')'             { $$.code = $2.code; }
     | '(' OBJ ')'           { $$.code = $2.code; }
-    |  ID_ARROW ARROW { isFunctionScope++; } E { isFunctionScope--; }
+    |  ID_ARROW ARROW E
         {
-            string lbl_func = getLabel("func_");
+            string lbl_func = getLabel("func_" + $1.code[0]);
             string def_lbl_func = ":" + lbl_func;
         
             // x => 2*x; : {} '&funcao' 10 [<=] = ^ . x & x arguments @ 0 [@] = ^ 2 x @ * '&retorno' @ ~
@@ -329,31 +332,33 @@ E   : ID '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + "=
             functions = functions + def_lbl_func + 
                 $1.code + "&" + $1.code + 
                 "arguments" + "@" + "0" + "[@]" + "=" + "^" +
-                $4.code + "'&retorno'" + "@" + "~";
+                $3.code + "'&retorno'" + "@" + "~";
+            isFunctionScope--;
             symbols.pop_back();
         }
-    | ID_ARROW { isFunctionScope++; } ARROW_OBJ CMDs '}' { isFunctionScope--; }
-        {
-            string lbl_func = getLabel("func_");
-            string def_lbl_func = ":" + lbl_func;
-        
-            $$.code =  vec("{}") + "'&funcao'" + lbl_func + "[<=]";
-            functions = functions + def_lbl_func + 
-                $1.code + "&" + $1.code + 
-                "arguments" + "@" + "0" + "[@]" + "=" + "^" +
-                $4.code + "'&retorno'" + "@" + "~";
-            symbols.pop_back();
-        }
-    | '(' { isFunctionScope++; } PARAMS_LIST PARENTESIS_ARROW ARROW E { isFunctionScope--; } 
+    |'(' PARAMS_LIST PARENTESIS_ARROW ARROW E
         { 
             string lbl_func = getLabel("func_");
             string def_lbl_func = ":" + lbl_func;
         
             $$.code =  vec("{}") + "'&funcao'" + lbl_func + "[<=]";
             functions = functions + def_lbl_func + 
-                $3.code + $6.code + "'&retorno'" + "@" + "~";
+                $2.code + $5.code + "'&retorno'" + "@" + "~";
             symbols.pop_back();
         }   
+    | ID_ARROW ARROW_OBJ CMDs '}'
+        {
+            string lbl_func = getLabel("func_" + $1.code[0]);
+            string def_lbl_func = ":" + lbl_func;
+        
+            $$.code =  vec("{}") + "'&funcao'" + lbl_func + "[<=]";
+            functions = functions + def_lbl_func + 
+                $1.code + "&" + $1.code + 
+                "arguments" + "@" + "0" + "[@]" + "=" + "^" +
+                $3.code + "'&retorno'" + "@" + "~";
+            isFunctionScope--;
+            symbols.pop_back();
+        }
     | ANON_FUNC
     | ARRAY 
     ;
@@ -382,12 +387,11 @@ ARG : E
     | OBJ
     ;
 
-ID_ARROW : ID PUSH_SYMBOLS { declareVariable(DeclLet, $1); }
+ID_ARROW : ID PUSH_SYMBOLS { declareVariable(DeclLet, $1); isFunctionScope++; }
          ;
 
-ANON_FUNC : FUNCTION { isFunctionScope++; } 
-            '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}' 
-            { isFunctionScope--; }
+ANON_FUNC : FUNCTION '(' PARAMS_LIST ')' 
+            { isFunctionScope++; } '{' CMDs '}'
             {
                 string lbl_func = getLabel("func_");
                 string def_lbl_func = ":" + lbl_func;
@@ -395,8 +399,9 @@ ANON_FUNC : FUNCTION { isFunctionScope++; }
                 $$.code =  vec("{}") + "'&funcao'" + 
                     lbl_func + "[<=]";
                 functions = functions + def_lbl_func + 
-                    $5.code + $8.code +
+                    $3.code + $7.code +
                     "undefined" + "@" + "'&retorno'" + "@"+ "~";
+                isFunctionScope--;
                 symbols.pop_back();
             }
          ;	
@@ -424,15 +429,11 @@ ARRAY_ARGS : ARRAY_ARGS ',' ARRAY_ARG {
         $$.code = to_string($1.args_counter) + $1.code +  "[<=]"; 
         $$.args_counter++;
     }
+    ;
 
 ARRAY_ARG : E 
           | OBJ 
           ;  
-
-
-
-
-
 
 %%
 #include "lex.yy.c"
@@ -594,6 +595,10 @@ vector<string> getFormattedMdpCode(string mdpCode){
 	}
 	formattedMdp.push_back(instr);
 	return formattedMdp;
+}
+
+void pushSymbols(){
+    symbols.push_back( map< string, Variable >{} );
 }
 
 void yyerror( const char* st ) {

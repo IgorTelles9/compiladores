@@ -366,15 +366,15 @@ static const flex_int16_t yy_accept[121] =
        32,   32,   32,   32,   27,   32,   32,   32,   31,   31,
        31,   31,   31,   31,   31,   31,   31,   31,   32,   32,
        10,    0,    0,   29,    0,   31,    5,    0,    0,   30,
-        0,    0,    0,   12,   11,   26,   27,    9,    7,   21,
-        8,   31,   31,   31,   31,   31,   31,   13,   31,   31,
+        0,    0,    0,   13,   12,   28,   27,    8,   11,    7,
+        9,   31,   31,   31,   31,   31,   31,   14,   31,   31,
        31,   31,   31,    0,    1,    6,    0,    0,    0,   29,
-        0,    0,    0,   30,   22,   26,    0,    0,   31,   31,
-       31,   31,   15,   31,   17,   31,   31,   19,   31,    0,
-        0,   29,   29,    0,    0,   30,   30,    0,   26,   23,
+        0,    0,    0,   30,   23,   28,    0,    0,   31,   31,
+       31,   31,   16,   31,   18,   31,   31,   21,   31,    0,
+        0,   29,   29,    0,    0,   30,   30,    0,   28,   24,
 
-        0,   31,   14,   31,   31,   31,   28,   31,   26,    0,
-       25,   18,   31,   31,   16,   31,   24,   31,   20,    0
+        0,   31,   15,   31,   31,   31,   26,   31,   28,    0,
+       25,   19,   31,   31,   17,   31,   20,   31,   22,    0
     } ;
 
 static const YY_CHAR yy_ec[256] =
@@ -839,17 +839,17 @@ YY_RULE_SETUP
 case 7:
 YY_RULE_SETUP
 #line 24 "mini_js.l"
-{ updateAttributes(); return EQUAL;            }
+{ updateAttributes(); return ARROW;            }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
 #line 25 "mini_js.l"
-{ updateAttributes(); return GT_EQ;            }
+{ updateAttributes(); return LT_EQ;            }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
 #line 26 "mini_js.l"
-{ updateAttributes(); return LT_EQ;            }
+{ updateAttributes(); return GT_EQ;            }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
@@ -859,75 +859,75 @@ YY_RULE_SETUP
 case 11:
 YY_RULE_SETUP
 #line 28 "mini_js.l"
-{ updateAttributes(); return PLUS_EQ;          }
+{ updateAttributes(); return EQUAL;            }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
 #line 29 "mini_js.l"
-{ updateAttributes(); return PLUS_PLUS;        }
+{ updateAttributes(); return PLUS_EQ;          }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
 #line 30 "mini_js.l"
-{ updateAttributes(); return IF;               }
+{ updateAttributes(); return PLUS_PLUS;        }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
 #line 31 "mini_js.l"
-{ updateAttributes(); return ELSE;             }
+{ updateAttributes(); return IF;               }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
 #line 32 "mini_js.l"
-{ updateAttributes(); return FOR;              }
+{ updateAttributes(); return ELSE;             }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
 #line 33 "mini_js.l"
-{ updateAttributes(); return WHILE;            }
+{ updateAttributes(); return FOR;              }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
 #line 34 "mini_js.l"
-{ updateAttributes(); return LET;              }
+{ updateAttributes(); return WHILE;            }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
 #line 35 "mini_js.l"
-{ updateAttributes(); return CONST;            }
+{ updateAttributes(); return LET;              }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
 #line 36 "mini_js.l"
-{ updateAttributes(); return VAR;              }
+{ updateAttributes(); return CONST;            }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
 #line 37 "mini_js.l"
-{ updateAttributes(); return FUNCTION;         }
+{ updateAttributes(); return RETURN;           }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
 #line 38 "mini_js.l"
-{ updateAttributes(); return ARROW;            }
+{ updateAttributes(); return VAR;              }
 	YY_BREAK
 case 22:
+YY_RULE_SETUP
+#line 39 "mini_js.l"
+{ updateAttributes(); return FUNCTION;         }
+	YY_BREAK
+case 23:
 *yy_cp = (yy_hold_char); /* undo effects of setting up yytext */
 (yy_c_buf_p) = yy_cp = yy_bp + 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 39 "mini_js.l"
-{ updateAttributes(); return PARENTESIS_ARROW; }
-	YY_BREAK
-case 23:
-YY_RULE_SETUP
 #line 40 "mini_js.l"
-{ updateAttributes(); return ARROW_OBJ;        }
+{ updateAttributes(); return PARENTESIS_ARROW; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
 #line 41 "mini_js.l"
-{ updateAttributes(); return RETURN;           }
+{ updateAttributes(); return ARROW_OBJ;        }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
@@ -942,7 +942,7 @@ YY_RULE_SETUP
 case 26:
 YY_RULE_SETUP
 #line 48 "mini_js.l"
-{ updateAttributes(); return FLOAT;     }
+{ updateAttributes(); return BOOL;      }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
@@ -952,7 +952,7 @@ YY_RULE_SETUP
 case 28:
 YY_RULE_SETUP
 #line 50 "mini_js.l"
-{ updateAttributes(); return BOOL;      }
+{ updateAttributes(); return FLOAT;     }
 	YY_BREAK
 case 29:
 /* rule 29 can match eol */
