@@ -13,7 +13,7 @@ bool dev = false; // not logging
 
 int ln = 1, col = 0; 
 
-bool isFunctionScope = false;
+int isFunctionScope = 0;
 
 struct Attributes {
     vector<string> code; 
@@ -86,6 +86,7 @@ tuple<string,string,string,string> generateIfLabels();
 vector<string> generateDefaultParamsCode(Attributes attr);
 string trim(string str, string charsToTrim);
 vector<string> getFormattedMdpCode(string mdpCode);
+void verifyReturn();
 
 %}
 
@@ -117,8 +118,8 @@ CMD : DECL_LET ';'
     | CMD_FOR
     | CMD_WHILE
     | CMD_FUNCTION
-    | RETURN E ';' { $$.code = $2.code + "'&retorno'" + "@" + "~"; }
-    | RETURN OBJ ';' { $$.code = $2.code + "'&retorno'" + "@" + "~"; }
+    | RETURN E ';' { verifyReturn(); $$.code = $2.code + "'&retorno'" + "@" + "~"; }
+    | RETURN OBJ ';' { verifyReturn(); $$.code = $2.code + "'&retorno'" + "@" + "~"; }
     | E ASM ';' { $$.code = $1.code + $2.code + "^"; }
     | '{' PUSH_SYMBOLS CMDs '}' { symbols.pop_back(); $$.code = vec("<{") + $3.code + vec("}>"); }
     | E ';' { $$.code = $1.code + "^";}
@@ -131,10 +132,10 @@ PUSH_SYMBOLS : { symbols.push_back( map< string, Variable >{} ); }
 
 CMD_FUNCTION : FUNCTION ID 
                 { declareVariable(DeclVar, $2); } 
-                { isFunctionScope = true; }
+                { isFunctionScope++; }
                 '(' PUSH_SYMBOLS PARAMS_LIST ')' 
                 '{' CMDs '}'
-                { isFunctionScope = false; }
+                { isFunctionScope--; }
                 {
                     string lbl_func = getLabel("func_" + $2.code[0]);
                     string def_lbl_func = ":" + lbl_func;
@@ -307,7 +308,7 @@ E   : ID '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + "=
     | INT
     | BOOL
     | STRING
-    | E '(' ARGS_LIST ')'   { 
+    | E '(' ARGS_LIST ')'   {
             $$.code = $3.code + to_string( $3.args_counter ) + $1.code + "$"; 
         }
     | ID 	                { 
@@ -318,8 +319,9 @@ E   : ID '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + "=
         }
     | '(' E ')'             { $$.code = $2.code; }
     | '(' OBJ ')'           { $$.code = $2.code; }
-    |  ID_ARROW ARROW E     {
-            string lbl_func = getLabel("func_" + $1.code[0]);
+    |  ID_ARROW ARROW { isFunctionScope++; } E { isFunctionScope--; }
+        {
+            string lbl_func = getLabel("func_");
             string def_lbl_func = ":" + lbl_func;
         
             // x => 2*x; : {} '&funcao' 10 [<=] = ^ . x & x arguments @ 0 [@] = ^ 2 x @ * '&retorno' @ ~
@@ -327,30 +329,29 @@ E   : ID '=' E { verifyAttrib($1.code[0],true); $$.code = $1.code + $3.code + "=
             functions = functions + def_lbl_func + 
                 $1.code + "&" + $1.code + 
                 "arguments" + "@" + "0" + "[@]" + "=" + "^" +
-                $3.code + "'&retorno'" + "@" + "~";
+                $4.code + "'&retorno'" + "@" + "~";
             symbols.pop_back();
         }
-    | ID_ARROW ARROW_OBJ CMDs '}' {
-            string lbl_func = getLabel("func_" + $1.code[0]);
+    | ID_ARROW { isFunctionScope++; } ARROW_OBJ CMDs '}' { isFunctionScope--; }
+        {
+            string lbl_func = getLabel("func_");
             string def_lbl_func = ":" + lbl_func;
         
-            // x => 2*x; : {} '&funcao' 10 [<=] = ^ . x & x arguments @ 0 [@] = ^ 2 x @ * '&retorno' @ ~
             $$.code =  vec("{}") + "'&funcao'" + lbl_func + "[<=]";
             functions = functions + def_lbl_func + 
                 $1.code + "&" + $1.code + 
                 "arguments" + "@" + "0" + "[@]" + "=" + "^" +
-                $3.code + "'&retorno'" + "@" + "~";
+                $4.code + "'&retorno'" + "@" + "~";
             symbols.pop_back();
         }
-    | '(' PARAMS_LIST PARENTESIS_ARROW E { 
-            string lbl_func = getLabel("func_" + $1.code[0]);
+    | '(' { isFunctionScope++; } PARAMS_LIST PARENTESIS_ARROW ARROW E { isFunctionScope--; } 
+        { 
+            string lbl_func = getLabel("func_");
             string def_lbl_func = ":" + lbl_func;
         
-            // x => 2*x; : {} '&funcao' 10 [<=] = ^ . x & x arguments @ 0 [@] = ^ 2 x @ * '&retorno' @ ~
             $$.code =  vec("{}") + "'&funcao'" + lbl_func + "[<=]";
             functions = functions + def_lbl_func + 
-                $1.code + "&" + $2.code + $4.code
-                + "'&retorno'" + "@" + "~";
+                $3.code + $6.code + "'&retorno'" + "@" + "~";
             symbols.pop_back();
         }   
     | ANON_FUNC
@@ -365,22 +366,28 @@ ARGS_LIST : ARGS
            | { $$.clear(); }
            ;
              
-ARGS : ARGS ',' E
+ARGS : ARGS ',' ARG
         { 
             $$.code = $1.code + $3.code;
             $$.args_counter++; 
         }
-     | E
+     | ARG
         { 
             $$.code = $1.code;
             $$.args_counter++; 
         }
      ;
 
+ARG : E
+    | OBJ
+    ;
+
 ID_ARROW : ID PUSH_SYMBOLS { declareVariable(DeclLet, $1); }
          ;
 
-ANON_FUNC : FUNCTION '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}' 
+ANON_FUNC : FUNCTION { isFunctionScope++; } 
+            '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}' 
+            { isFunctionScope--; }
             {
                 string lbl_func = getLabel("func_");
                 string def_lbl_func = ":" + lbl_func;
@@ -388,7 +395,7 @@ ANON_FUNC : FUNCTION '(' PUSH_SYMBOLS PARAMS_LIST ')' '{' CMDs '}'
                 $$.code =  vec("{}") + "'&funcao'" + 
                     lbl_func + "[<=]";
                 functions = functions + def_lbl_func + 
-                    $4.code + $7.code +
+                    $5.code + $8.code +
                     "undefined" + "@" + "'&retorno'" + "@"+ "~";
                 symbols.pop_back();
             }
@@ -398,7 +405,7 @@ OBJ : EMPTY_BLOCK
     | '{' OBJ_FIELDS '}' { $$.code = "{}" + $2.code; }
     ;
 
-OBJ_FIELDS : OBJ_FIELDS ',' OBJ_FIELD { $$.code = $1.code + $3.code; }
+OBJ_FIELDS : OBJ_FIELD ',' OBJ_FIELDS { $$.code = $1.code + $3.code; }
            | OBJ_FIELD 
            ;
 
@@ -505,7 +512,7 @@ vector<string> declareVariable(Decl type, string name, int ln, int col) {
 }
 
 void verifyAttrib(string name, bool a) {
-    if (isFunctionScope) return;
+    if (isFunctionScope > 0) return;
 
     log("\nVerificando atribuição" );
     log("Nome: " , name );
@@ -531,6 +538,14 @@ void verifyAttrib(string name, bool a) {
     }
     cerr << "Erro: a variável '" << name << "' não foi declarada." << endl;
     exit(1);
+}
+
+void verifyReturn(){
+    if (isFunctionScope == 0) {
+        cerr << "Erro: Não é permitido 'return' fora de funções." << endl;
+        exit(1);
+    }
+    return;
 }
 
 vector<string> vec(string s) {
