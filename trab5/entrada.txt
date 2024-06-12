@@ -1,8 +1,18 @@
-function log( msg, i ) {
+function log( msg ) {
   msg asm{println # undefined};
 }
 
-let console = { log: log, teste : [ 'aba', 'cate' ] };
+function criaObj() {
+  return { a : [ {}, { teste: 1 }, c=24*8+1 ], b: 'nome', log: x => print(x) };
+}
 
-console.log( [1, 2, 3] );
-console.log( console.teste );
+
+let obj = [];
+let c;
+{ obj = criaObj();
+let c = [];
+
+log( obj );
+log( obj.a );
+log( obj.a[obj.a[1].teste+1] );
+}

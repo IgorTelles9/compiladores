@@ -118,6 +118,7 @@ CMD : DECL_LET ';'
     | CMD_WHILE
     | CMD_FUNCTION
     | RETURN E ';' { $$.code = $2.code + "'&retorno'" + "@" + "~"; }
+    | RETURN OBJ ';' { $$.code = $2.code + "'&retorno'" + "@" + "~"; }
     | E ASM ';' { $$.code = $1.code + $2.code + "^"; }
     | '{' PUSH_SYMBOLS CMDs '}' { symbols.pop_back(); $$.code = vec("<{") + $3.code + vec("}>"); }
     | E ';' { $$.code = $1.code + "^";}
@@ -405,7 +406,7 @@ OBJ_FIELD : ID ':' E { $$.code = $1.code + $3.code + "[<=]"; }
           | ID ':' OBJ { $$.code = $1.code + $3.code + "[<=]"; }
           ;
 
-ARRAY : '[' ARRAY_ARGS ']' {$$.code = $2.code; }
+ARRAY : '[' ARRAY_ARGS ']' {$$.code = "[]" + $2.code; }
       ;
 
 ARRAY_ARGS : ARRAY_ARGS ',' ARRAY_ARG { 
@@ -413,7 +414,7 @@ ARRAY_ARGS : ARRAY_ARGS ',' ARRAY_ARG {
         $$.args_counter++;
     }
     | ARRAY_ARG { 
-        $$.code = $1.code + to_string($1.args_counter) + "[<=]"; 
+        $$.code = to_string($1.args_counter) + $1.code +  "[<=]"; 
         $$.args_counter++;
     }
 
